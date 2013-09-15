@@ -180,10 +180,6 @@ FunctionDeclaration.prototype = {
     var block = body.body;
     for (var i = 0; i < this.params.length; i++) {
       var expression = null;
-      if (this.params[i].typeof == 'int') {
-        expression = new BinaryExpression(this.params[i], '|', new Literal(0, 'int'));
-      } else if (this.params[i])
-      
       switch (this.params[i].typeof) {
         case 'int':
           expression = new BinaryExpression(this.params[i], '|', new Literal(0, 'int'));
