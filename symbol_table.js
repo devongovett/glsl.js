@@ -46,7 +46,6 @@ SymbolTable.prototype = {
             // it is not allowed in GLSL but is in JS
             symbol.id.name += '$' + scope[name].length;
         } else {            
-            // TODO: disallow variable declarations with the same name as functions
             error("Redeclaration of identifier", name);
         }
         

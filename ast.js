@@ -5,6 +5,7 @@ function Program(body) {
     this.type = "Program";
     body = body || [];
     
+    // add asm.js directive
     this.block = new BlockStatement(body);
     this.block.body.unshift(
       new ExpressionStatement(
@@ -17,6 +18,7 @@ function Program(body) {
     if (!main)
       error('No main function found');
     
+    // export the main function from the wrapper
     this.block.addStatement(
       new ReturnStatement(
         new ObjectExpression(null, [
@@ -28,6 +30,7 @@ function Program(body) {
       )
     );
     
+    // create wrapper function for asm.js
     this.body = [
       new VariableDeclaration(null, [
         new VariableDeclarator('gl', 
