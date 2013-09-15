@@ -137,6 +137,14 @@ function FunctionDeclaration(type, name, params, body) {
     this.params = params || [];
     this.body = body;
     this.returnType = type;
+    
+    if (name == 'main') {
+      if (type !== 'void')
+        error('main function must return void');
+        
+      if (this.params.length !== 0)
+        error('main function cannot accept any arguments');
+    }
 }
 
 FunctionDeclaration.prototype.equals = function(other) {
