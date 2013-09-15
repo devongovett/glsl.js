@@ -812,7 +812,6 @@ function convertArg(type, arg) {
         case 'mat4':
         case 'float':
             if (arg.typeof !== 'float' && arg.typeof !== 'int') {
-                // arg = new CallExpression('Number', false, [arg]);
                 arg = new UnaryExpression('+', arg);
             }
             
@@ -824,7 +823,6 @@ function convertArg(type, arg) {
         case 'ivec4':
         case 'int':
             if (arg.typeof !== 'int') {
-                // arg = new CallExpression(new MemberExpression(new Identifier('Math'), new Identifier('floor')), false, [arg]);
                 arg = new BinaryExpression(arg, '|', new Literal(0, arg.typeof));
                 arg.typeof = 'int';
             }

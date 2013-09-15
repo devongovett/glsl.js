@@ -35,9 +35,18 @@ function Program(body) {
             {
               type: 'FunctionExpression',
               id: null,
-              params: [],
-              body: this.block
-            }
+              body: this.block,
+              params: [
+                new Identifier('stdlib')
+              ]
+            }, [
+              new ObjectExpression(null, [
+                new Property(
+                  new Identifier('Math'),
+                  new Identifier('Math')
+                )
+              ])
+            ]
           )
         )
       ])
