@@ -1,4 +1,5 @@
 %start glsl-start
+%right THEN ELSE
 
 %%
     
@@ -684,7 +685,7 @@ selection_rest_statement
         $$.consequent = $1;
         $$.alternate = $3;
     }
-    | statement_with_scope {
+    | statement_with_scope %prec THEN {
         $$ = {}
         $$.consequent = $1;
         $$.alternate = null;
@@ -794,7 +795,7 @@ function_definition
         if (yy.fn.returnType !== 'void' && !yy.fnReturned)
             error('non-void function must return a value');
         
-        $1.body = $2;
+        $1.setBody($2);
         $$ = $1;
         yy.symbolTable.popScope();
     }
