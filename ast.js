@@ -13,11 +13,6 @@ function Program(body) {
       )
     );
     
-    // check for main function
-    var main = glsl.yy.symbolTable.findFunction(new CallExpression('main', []));
-    if (!main)
-      error('No main function found');
-    
     // export the main function from the wrapper
     this.block.addStatement(
       new ReturnStatement(
@@ -60,6 +55,8 @@ Program.prototype.addStatement = function(statement) {
     this.block.push(statement);
 }
 
+exports.Program = Program;
+
 /*
  * A block statement, i.e., a sequence of statements surrounded by braces.
  */
@@ -72,6 +69,8 @@ BlockStatement.prototype.addStatement = function(statement) {
     this.body.push(statement);
 }
 
+exports.BlockStatement = BlockStatement;
+
 /*
  * An expression statement, i.e., a statement consisting of a single expression.
  */
@@ -79,6 +78,8 @@ function ExpressionStatement(expression) {
     this.type = "ExpressionStatement";
     this.expression = expression;
 }
+
+exports.ExpressionStatement = ExpressionStatement;
 
 /*
  * An if statement
@@ -94,18 +95,26 @@ function IfStatement(test, consequent, alternate) {
         error('boolean expression expected');
 }
 
+exports.IfStatement = IfStatement;
+
 function BreakStatement() {
     this.type = "BreakStatement";
 }
+
+exports.BreakStatement = BreakStatement;
 
 function ContinueStatement() {
     this.type = "ContinueStatement";
 }
 
+exports.ContinueStatement = ContinueStatement;
+
 function ReturnStatement(arg) {
     this.type = "ReturnStatement";
     this.argument = arg;
 }
+
+exports.ReturnStatement = ReturnStatement;
 
 function WhileStatement(test, body) {
     this.type = "WhileStatement";
@@ -116,6 +125,8 @@ function WhileStatement(test, body) {
         error('boolean expression expected');
 }
 
+exports.WhileStatement = WhileStatement;
+
 function DoWhileStatement(test, body) {
     this.type = "DoWhileStatement";
     this.test = test;
@@ -124,6 +135,8 @@ function DoWhileStatement(test, body) {
     if (test.typeof !== 'bool' || test.isArray)
         error('boolean expression expected');
 }
+
+exports.DoWhileStatement = DoWhileStatement;
 
 /*
  * A for statement.
@@ -142,6 +155,8 @@ function ForStatement(init, test, update, body) {
     if (test.typeof !== 'bool' || test.isArray)
         error('boolean expression expected');
 }
+
+exports.ForStatement = ForStatement;
 
 function FunctionDeclaration(type, name, params, body) {
     this.type = "FunctionDeclaration";
@@ -206,11 +221,15 @@ FunctionDeclaration.prototype = {
   }
 };
 
+exports.FunctionDeclaration = FunctionDeclaration;
+
 // Not used in resulting AST, only internally
 function StructureDeclaration(name, fields) {
     this.name = name;
     this.fields = fields || {};
 }
+
+exports.StructureDeclaration = StructureDeclaration;
 
 /*
  * A set of variable declarations
@@ -221,6 +240,8 @@ function VariableDeclaration(type, declarations) {
     this.declarations = declarations || [];
     this.typeof = type;
 }
+
+exports.VariableDeclaration = VariableDeclaration;
 
 function VariableDeclarator(name, value, arraySize) {
     this.type = "VariableDeclarator";
@@ -268,6 +289,8 @@ VariableDeclarator.prototype.initDefault = function(type) {
         }
     }
 }
+
+exports.VariableDeclarator = VariableDeclarator;
 
 function Expression() {}
 Expression.prototype = {
@@ -321,6 +344,8 @@ Expression.prototype = {
     }
 };
 
+exports.Expression = Expression;
+
 function ArrayExpression(type, elements) {
     this.type = "ArrayExpression";
     this.elements = elements || [];
@@ -332,6 +357,8 @@ ArrayExpression.prototype.getComponent = function(index) {
     return this.elements[index];
 }
 
+exports.ArrayExpression = ArrayExpression;
+
 function NewExpression(callee, arguments, type) {
     this.type = "NewExpression";
     this.callee = new Identifier(callee);
@@ -340,6 +367,7 @@ function NewExpression(callee, arguments, type) {
 }
 
 NewExpression.prototype = new Expression;
+exports.NewExpression = NewExpression;
 
 function ObjectExpression(type, properties) {
     this.type = "ObjectExpression";
@@ -348,6 +376,7 @@ function ObjectExpression(type, properties) {
 }
 
 ObjectExpression.prototype = new Expression;
+exports.ObjectExpression = ObjectExpression;
 
 function Property(key, value) {
     this.type = "Property";
@@ -356,6 +385,8 @@ function Property(key, value) {
     this.value = value; // Expression
 }
 
+exports.Property = Property;
+
 function SequenceExpression(expressions) {
     this.type = "SequenceExpression";
     this.expressions = expressions || [];
@@ -363,6 +394,7 @@ function SequenceExpression(expressions) {
 }
 
 SequenceExpression.prototype = new Expression;
+exports.SequenceExpression = SequenceExpression;
 
 // "-" | "+" | "!"
 function UnaryExpression(operator, argument) {
@@ -404,6 +436,8 @@ UnaryExpression.prototype.toConstant = function() {
         
     return eval(this.operator + arg); // TODO: get rid of eval???
 }
+
+exports.UnaryExpression = UnaryExpression;
 
 /*
  * "==" | "!=" | "<" | "<=" | ">" | ">=" | "+" | "-" | "*" | "/"
@@ -470,6 +504,8 @@ BinaryExpression.prototype.toConstant = function() {
     return eval(left + this.operator + right); // TODO: get rid of eval???
 }
 
+exports.BinaryExpression = BinaryExpression;
+
 /*
  * "=" | "+=" | "-=" | "*=" | "/="
  */
@@ -531,6 +567,8 @@ AssignmentExpression.create = function(left, operator, right) {
     return new AssignmentExpression(left, '=', BinaryExpression.create(left, operator[0], right));
 }
 
+exports.AssignmentExpression = AssignmentExpression;
+
 // "++" | "--"
 function UpdateExpression(operator, argument, prefix) {
     this.type = "UpdateExpression";
@@ -564,6 +602,8 @@ UpdateExpression.create = function(operator, argument, prefix) {
     return new UpdateExpression(operator, argument, prefix);
 }
 
+exports.UpdateExpression = UpdateExpression;
+
 // "||" | "&&"
 function LogicalExpression(left, operator, right) {
     this.type = "LogicalExpression";
@@ -580,6 +620,7 @@ function LogicalExpression(left, operator, right) {
 }
 
 LogicalExpression.prototype = new Expression;
+exports.LogicalExpression = Expression;
 
 function ConditionalExpression(test, consequent, alternate) {
     this.type = "ConditionalExpression";
@@ -596,6 +637,7 @@ function ConditionalExpression(test, consequent, alternate) {
 }
 
 ConditionalExpression.prototype = new Expression;
+exports.ConditionalExpression = ConditionalExpression;
 
 function CallExpression(callee, arguments) {
     this.type = "CallExpression";
@@ -606,6 +648,7 @@ function CallExpression(callee, arguments) {
 }
 
 CallExpression.prototype = new Expression;
+exports.CallExpression = CallExpression;
 
 /*
  * A member expression.
@@ -622,6 +665,7 @@ function MemberExpression(object, property, computed) {
 }
 
 MemberExpression.prototype = new Expression;
+exports.MemberExpression = MemberExpression;
 
 function Identifier(name, type, arraySize) {
     this.type = "Identifier";
@@ -632,6 +676,7 @@ function Identifier(name, type, arraySize) {
 }
 
 Identifier.prototype = new Expression;
+exports.Identifier = Identifier;
 
 function Literal(value, type) {
     this.type = "Literal";
@@ -644,6 +689,8 @@ Literal.prototype.toConstant = function() {
     return this.value;
 }
 
+exports.Literal = Literal;
+
 // only used internally, not part of the resulting AST
 function Swizzle(vector, offsets) {
     this.vector = vector;
@@ -655,3 +702,5 @@ Swizzle.prototype = new Expression;
 Swizzle.prototype.getComponent = function(index) {
     return this.vector.getComponent(this.offsets[index]);
 }
+
+exports.Swizzle = Swizzle;

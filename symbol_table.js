@@ -1,3 +1,5 @@
+var ast = require('./ast');
+
 function SymbolTable() {
     this.stack = [];
     this.pushScope(); // add global scope
@@ -27,7 +29,7 @@ SymbolTable.prototype = {
         
         if (!scope[name]) {
             scope[name] = [];
-        } else if (symbol instanceof FunctionDeclaration) {
+        } else if (symbol instanceof ast.FunctionDeclaration) {
             for (var i = 0; i < scope[name].length; i++) {
                 if (scope[name][i].equals(symbol)) {
                     if (symbol.returnType !== scope[name][i].returnType)
@@ -63,10 +65,10 @@ SymbolTable.prototype = {
             }
         }
         
-        if (symbol instanceof VariableDeclarator && this.stack[0][name]) { // TODO: function params
+        if (symbol instanceof ast.VariableDeclarator && this.stack[0][name]) { // TODO: function params
             var list = this.stack[0][name];
             for (var i = 0; i < list.length; i++) {
-                if (list[i] instanceof FunctionDeclaration) {
+                if (list[i] instanceof ast.FunctionDeclaration) {
                     symbol.id.name += '$';
                     break;
                 }
@@ -82,7 +84,7 @@ SymbolTable.prototype = {
             var scope = this.stack[i];
             if (scope[name]) {
                 for (var i = 0; i < scope[name].length; i++) {
-                    if (scope[name][i] instanceof VariableDeclarator || scope[name][i] instanceof Identifier)
+                    if (scope[name][i] instanceof ast.VariableDeclarator || scope[name][i] instanceof ast.Identifier)
                         return scope[name][i];
                 }
                 
@@ -99,7 +101,7 @@ SymbolTable.prototype = {
         
         if (list) {
             for (var i = 0; i < list.length; i++) {
-                if (!(list[i] instanceof FunctionDeclaration)) continue;
+                if (!(list[i] instanceof ast.FunctionDeclaration)) continue;
                 if (list[i].params.length !== fn.arguments.length) continue;
                 for (var j = 0; j < list[i].params.length; j++) {
                     if (list[i].params[j].typeof !== fn.arguments[j].typeof) break;
@@ -118,7 +120,7 @@ SymbolTable.prototype = {
             var scope = this.stack[i];
             if (scope[name]) {
                 for (var i = 0; i < scope[name].length; i++) {
-                    if (scope[name][i] instanceof StructureDeclaration)
+                    if (scope[name][i] instanceof ast.StructureDeclaration)
                         return scope[name][i];
                 }
                 
@@ -129,3 +131,5 @@ SymbolTable.prototype = {
         return null;
     }
 };
+
+module.exports = SymbolTable;
