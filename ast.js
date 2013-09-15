@@ -3,11 +3,49 @@
  */
 function Program(body) {
     this.type = "Program";
-    this.body = body || [];
+    body = body || [];
+    
+    this.block = new BlockStatement(body);
+    this.block.body.unshift(
+      new ExpressionStatement(
+        new Literal("use asm")
+      )
+    );
+    
+    // check for main function
+    var main = glsl.yy.symbolTable.findFunction(new CallExpression('main', []));
+    if (!main)
+      error('No main function found');
+    
+    this.block.addStatement(
+      new ReturnStatement(
+        new ObjectExpression(null, [
+          new Property(
+            new Identifier('main'),
+            new Identifier('main')
+          )
+        ])
+      )
+    );
+    
+    this.body = [
+      new VariableDeclaration(null, [
+        new VariableDeclarator('gl', 
+          new CallExpression(
+            {
+              type: 'FunctionExpression',
+              id: null,
+              params: [],
+              body: this.block
+            }
+          )
+        )
+      ])
+    ];
 }
 
 Program.prototype.addStatement = function(statement) {
-    this.body.push(statement);
+    this.block.push(statement);
 }
 
 /*
