@@ -159,7 +159,8 @@ function FunctionDeclaration(type, name, params, body) {
     }
 }
 
-FunctionDeclaration.prototype.equals = function(other) {
+FunctionDeclaration.prototype = {
+  equals: function(other) {
     if (!(other instanceof FunctionDeclaration))
         return false;
                         
@@ -172,7 +173,42 @@ FunctionDeclaration.prototype.equals = function(other) {
     }
     
     return true;
-}
+  },
+  
+  setBody: function(body) {
+    // generate asm.js type annotations
+    var block = body.body;
+    for (var i = 0; i < this.params.length; i++) {
+      var expression = null;
+      if (this.params[i].typeof == 'int') {
+        expression = new BinaryExpression(this.params[i], '|', new Literal(0, 'int'));
+      } else if (this.params[i])
+      
+      switch (this.params[i].typeof) {
+        case 'int':
+          expression = new BinaryExpression(this.params[i], '|', new Literal(0, 'int'));
+          break;
+        case 'float':
+          expression = new UnaryExpression('+', this.params[i]);
+          break;
+      }
+      
+      if (expression) {
+        block.unshift(
+          new ExpressionStatement(
+            new AssignmentExpression(
+              this.params[i],
+              '=',
+              expression
+            )
+          )
+        );
+      }
+    }
+    
+    this.body = body;
+  }
+};
 
 // Not used in resulting AST, only internally
 function StructureDeclaration(name, fields) {
