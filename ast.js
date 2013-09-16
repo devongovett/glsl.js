@@ -20,11 +20,37 @@ function Program(body) {
     
     // add asm.js directive
     this.block = new BlockStatement(body);
-    this.block.body.unshift(
+    var header = [
       new ExpressionStatement(
         new Literal("use asm")
-      )
-    );
+      ),
+      new VariableDeclaration('int', [
+        new VariableDeclarator('$$STACKTOP', new Literal(0))
+      ])
+    ];
+    
+    var heapTypes = {
+      STACK_I: 'Int32Array',
+      STACK_F: 'Float32Array'
+    };
+    
+    for (var name in heapTypes) {
+      header.push(
+        new VariableDeclaration(null, [
+          new VariableDeclarator('$$' + name, 
+            new NewExpression(
+              new MemberExpression(
+                  new Identifier('stdlib'),
+                  new Identifier(heapTypes[name])
+              ),
+              [new Identifier('stack')]
+            )
+          )
+        ])
+      );
+    }
+    
+    this.block.body.unshift.apply(this.block.body, header);
     
     // export the main function from the wrapper
     this.block.addStatement(
@@ -48,15 +74,27 @@ function Program(body) {
               id: null,
               body: this.block,
               params: [
-                new Identifier('stdlib')
+                new Identifier('stdlib'),
+                new Identifier('env'),
+                new Identifier('stack')
               ]
             }, [
               new ObjectExpression(null, [
                 new Property(
                   new Identifier('Math'),
                   new Identifier('Math')
+                ),
+                new Property(
+                  new Identifier('Int32Array'),
+                  new Identifier('Int32Array')
+                ),
+                new Property(
+                  new Identifier('Float32Array'),
+                  new Identifier('Float32Array')
                 )
-              ])
+              ]),
+              new ObjectExpression(),
+              new NewExpression('ArrayBuffer', [new Literal(4096)])
             ]
           )
         )
@@ -124,6 +162,12 @@ exports.ContinueStatement = ContinueStatement;
 
 function ReturnStatement(arg) {
     this.type = "ReturnStatement";
+    // this.argument = arg;
+    
+    if (arg.typeof == 'int') {
+      
+    }
+    
     this.argument = arg;
 }
 
@@ -347,18 +391,29 @@ Expression.prototype = {
         return this.isArray ? this.typeof : this._componentTypes[this.typeof];
     },
     
+    componentIndex: function(index) {
+        return index == 0 ? this : new BinaryExpression(this, '+', new Literal(index, this.typeof));
+    },
+    
     getComponent: function(index) {
         if (this.isScalar())
             return this;
             
-        var ret = new MemberExpression(this, new Literal(index), true);
-        ret.typeof = this.componentType();
+        var type = this.componentType();
+        var stack = new Identifier('$$STACK_' + type[0].toUpperCase(), type);
+        
+        var ret = new MemberExpression(stack, this.componentIndex(index), true);
+        ret.typeof = type;
+        
         return ret;
     }
 };
 
 exports.Expression = Expression;
 
+/*
+ * Represents arrays, vectors, and matrices
+ */
 function ArrayExpression(type, elements) {
     this.type = "ArrayExpression";
     this.elements = elements || [];
@@ -368,13 +423,38 @@ function ArrayExpression(type, elements) {
 ArrayExpression.prototype = new Expression;
 ArrayExpression.prototype.getComponent = function(index) {
     return this.elements[index];
-}
+};
+
+ArrayExpression.prototype.generateStack = function() {
+    var list = [];
+    var type = this.componentType();
+    var stack = new Identifier('$$STACK_' + type[0].toUpperCase(), type);
+    var stackTop = new UpdateExpression('++', new Identifier('$$STACKTOP'));
+    
+    for (var i = 0; i < this.elements.length; i++) {
+        // $$STACK_T[$$STACKTOP++] = element
+        list.push(new AssignmentExpression(
+            new MemberExpression(
+                stack,
+                stackTop,
+                true
+            ),
+            '=',
+            this.elements[i]
+        ));
+    }
+    
+    list.push(new BinaryExpression(new Identifier('$$STACKTOP'), '-', new Literal(this.elements.length)));
+    var ret = new SequenceExpression(list);
+    ret.typeof = this.typeof;
+    return ret;
+};
 
 exports.ArrayExpression = ArrayExpression;
 
 function NewExpression(callee, arguments, type) {
     this.type = "NewExpression";
-    this.callee = new Identifier(callee);
+    this.callee = typeof callee == 'string' ? new Identifier(callee) : callee;
     this.arguments = arguments || [];
     this.typeof = type;
 }
@@ -559,7 +639,8 @@ AssignmentExpression.create = function(left, operator, right) {
             args.push(new AssignmentExpression(left.getComponent(i), operator, right.getComponent(i)));
         }
         
-        return new ArrayExpression(right.typeof, args);
+        args.push(left.componentIndex(0));
+        return new SequenceExpression(args);
     }
         
     if (operator === '=') {
@@ -574,7 +655,7 @@ AssignmentExpression.create = function(left, operator, right) {
             return new AssignmentExpression(left, '=', new ArrayExpression(right.typeof, args));
         }
         
-        return new AssignmentExpression(left, '=', right);
+        return new AssignmentExpression(left, '=', right.generateStack ? right.generateStack() : right);
     }
         
     return new AssignmentExpression(left, '=', BinaryExpression.create(left, operator[0], right));
@@ -712,8 +793,12 @@ function Swizzle(vector, offsets) {
 }
 
 Swizzle.prototype = new Expression;
+Swizzle.prototype.componentIndex = function(index) {
+    return this.vector.componentIndex(this.offsets[index]);
+}
+
 Swizzle.prototype.getComponent = function(index) {
-    return this.vector.getComponent(this.offsets[index]);
+  return this.vector.getComponent(this.offsets[index]);
 }
 
 exports.Swizzle = Swizzle;

@@ -20,7 +20,7 @@ SymbolTable.prototype = {
     
     checkGlobal: function(msg) {
         if (this.stack.length > 1)
-            error(msg, "only allowed in global scope");
+            ast.error(msg, "only allowed in global scope");
     },
     
     add: function(symbol) {
@@ -33,10 +33,10 @@ SymbolTable.prototype = {
             for (var i = 0; i < scope[name].length; i++) {
                 if (scope[name][i].equals(symbol)) {
                     if (symbol.returnType !== scope[name][i].returnType)
-                        error('Overloaded functions must have the same return type');
+                        ast.error('Overloaded functions must have the same return type');
                         
                     if (scope[name][i].body)
-                        error("Function", name, "already has a body");
+                        ast.error("Function", name, "already has a body");
                             
                     symbol.id = scope[name][i].id;
                     scope[name][i] = symbol;
@@ -48,7 +48,7 @@ SymbolTable.prototype = {
             // it is not allowed in GLSL but is in JS
             symbol.id.name += '$' + scope[name].length;
         } else {            
-            error("Redeclaration of identifier", name);
+            ast.error("Redeclaration of identifier", name);
         }
         
         if (scope instanceof SubScope) {

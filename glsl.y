@@ -109,8 +109,8 @@ postfix_expression
             $$ = $$.getComponent(0);
         }
     }
-	| postfix_expression 'INC_OP'                 { $$ = yy.UpdateExpression.create('++', $1); }
-	| postfix_expression 'DEC_OP'                 { $$ = yy.UpdateExpression.create('--', $1); }
+	| postfix_expression 'INC_OP' { $$ = yy.UpdateExpression.create('++', $1); }
+	| postfix_expression 'DEC_OP' { $$ = yy.UpdateExpression.create('--', $1); }
 	;
     
 function_call
@@ -152,6 +152,9 @@ function_call
             if (!expectedCount)
                 yy.error('Unsupported constructor');
                 
+            // $$STACKTOP += counts[type];
+            // $$STACKF8[$$STACKTOP] = 
+                
             var ret = new yy.ArrayExpression(type);
             var args = ret;
             var full = false;
@@ -172,28 +175,7 @@ function_call
                     args.elements.push(yy.convertArg(type, arg));
                     length++;
                     
-                // if the last argument is longer than required and isn't a direct variable reference
-                // we need to slice it rather than copy arguments directly since there could be an update
-                // involved that needs to touch all components, not just the ones we use
-                } else if (count > expectedCount - length && !(arg instanceof yy.Identifier)) {
-                    var slice = new yy.CallExpression(
-                        new yy.MemberExpression(arg, new yy.Identifier('slice')),
-                        [new yy.Literal(0), new yy.Literal(expectedCount - length)]
-                    );
-                    
-                    if (args.elements.length > 0) {
-                        ret = new yy.CallExpression(
-                            new yy.MemberExpression(ret, new yy.Identifier('concat')),
-                            [slice]
-                        );
-                    } else {
-                        ret = slice;
-                    }
-                    
-                    ret.typeof = type;
-                    length = expectedCount;
-                    
-                // if not, just copy the arguments over from the other vector
+                // copy the arguments over from the other vector
                 } else {
                     count = Math.min(count, expectedCount - length);
                     for (var j = 0; j < count; j++) {
@@ -206,12 +188,12 @@ function_call
                 if (length >= expectedCount)
                     full = true;
             }
-            
-            if (length !== 1 && length < expectedCount)
-                yy.error('Not enough arguments for constructor');
                 
             // if a single scalar was given, fill the rest of the elements with the same value
             if (length < expectedCount) {
+                if (length !== 1)
+                    yy.error('Not enough arguments for constructor');
+              
                 for (var i = 1; i < expectedCount; i++) {
                     args.elements.push(args.elements[0]);
                 }
@@ -486,7 +468,7 @@ single_declaration
         $$ = yy.symbolTable.add(new yy.VariableDeclarator($1));
     }
     | 'IDENTIFIER' 'LEFT_BRACKET' 'RIGHT_BRACKET' { 
-        yy.error('unsized array declarations not supported');
+        yy.error('unsized array declarations are not supported');
     }
     | 'IDENTIFIER' 'LEFT_BRACKET' constant_expression 'RIGHT_BRACKET' {
         if ($3.typeof !== 'int')
