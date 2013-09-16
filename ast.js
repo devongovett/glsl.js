@@ -1,3 +1,16 @@
+var glsl = require('./glsl').parser;
+
+// Throws errors with line number info
+function error() {
+    throw new SyntaxError(
+        [].slice.call(arguments).join(' ') + 
+        " on line " + (glsl.lexer.yylineno + 1) + "\n" + 
+        glsl.lexer.showPosition()
+    );
+}
+
+exports.error = error;
+
 /*
  * A complete program source tree.
  */
@@ -704,3 +717,49 @@ Swizzle.prototype.getComponent = function(index) {
 }
 
 exports.Swizzle = Swizzle;
+
+// Helper function used to convert types
+function convertArg(type, arg) {
+    switch (type) {
+        case 'vec2':
+        case 'vec3':
+        case 'vec4':
+        case 'mat2':
+        case 'mat3':
+        case 'mat4':
+        case 'float':
+            if (arg.typeof !== 'float') {
+                arg = new UnaryExpression('+', arg);
+            }
+            
+            arg.typeof = 'float';
+            return arg;
+            
+        case 'ivec2':
+        case 'ivec3':
+        case 'ivec4':
+        case 'int':
+            if (arg.typeof !== 'int') {
+                arg = new BinaryExpression(arg, '|', new Literal(0, arg.typeof));
+                arg.typeof = 'int';
+            }
+            
+            return arg;
+            
+        case 'bvec2':
+        case 'bvec3':
+        case 'bvec4':
+        case 'bool':
+            if (arg.typeof !== 'bool') {
+                arg = new UnaryExpression('!', new UnaryExpression('!', arg));
+                arg.typeof = 'bool';
+            }
+            
+            return arg;
+            
+        default:
+            error('unsupported construction');
+    }
+}
+
+exports.convertArg = convertArg;
