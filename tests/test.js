@@ -9,7 +9,7 @@ function compare(a, b) {
 }
 
 function checkMain(a, b) {
-    compare(a.split('\n').slice(5, -6).join('\n'), b);
+    compare(glsl.compile(a).split('\n').slice(5, -6).join('\n'), b);
 }
 
 describe('main function', function() {
@@ -47,20 +47,20 @@ describe('main function', function() {
 describe('primative variable declarations', function() {
     
     it('should default ints to 0', function() {
-        checkMain(glsl.compile('void main() { int test; }'), 'function main() { var test = 0; }');
-        checkMain(glsl.compile('void main() { int test, foo; }'), 'function main() { var test = 0, foo = 0; }');
+        checkMain('void main() { int test; }', 'function main() { var test = 0; }');
+        checkMain('void main() { int test, foo; }', 'function main() { var test = 0, foo = 0; }');
         
     });
     
     it('should default floats to 0.0', function() {
-        checkMain(glsl.compile('void main() { float test; }'), 'function main() { var test = (0.0); }');
-        checkMain(glsl.compile('void main() { float test, foo; }'), 'function main() { var test = (0.0), foo = (0.0); }');
+        checkMain('void main() { float test; }', 'function main() { var test = (0.0); }');
+        checkMain('void main() { float test, foo; }', 'function main() { var test = (0.0), foo = (0.0); }');
         
     });
     
     it('should default bools to 0 (false)', function() {
-        checkMain(glsl.compile('void main() { bool test; }'), 'function main() { var test = 0; }');
-        checkMain(glsl.compile('void main() { bool test, foo; }'), 'function main() { var test = 0, foo = 0; }');
+        checkMain('void main() { bool test; }', 'function main() { var test = 0; }');
+        checkMain('void main() { bool test, foo; }', 'function main() { var test = 0, foo = 0; }');
         
     });
         
@@ -68,30 +68,30 @@ describe('primative variable declarations', function() {
 
 describe('primative variable initializers', function() {
     it('should allow valid int initializations', function() {
-        checkMain(glsl.compile('void main() { int test = 1; }'),    'function main() { var test = 1; }');
-        checkMain(glsl.compile('void main() { int test = 55; }'),   'function main() { var test = 55; }');
-        checkMain(glsl.compile('void main() { int test = 0x23; }'), 'function main() { var test = 35; }');
-        checkMain(glsl.compile('void main() { int test = 023; }'),  'function main() { var test = 19; }');
-        checkMain(glsl.compile('void main() { int test, foo = 2, bar; }'), 'function main() { var test = 0, foo = 2, bar = 0; }');
+        checkMain('void main() { int test = 1; }',    'function main() { var test = 1; }');
+        checkMain('void main() { int test = 55; }',   'function main() { var test = 55; }');
+        checkMain('void main() { int test = 0x23; }', 'function main() { var test = 35; }');
+        checkMain('void main() { int test = 023; }',  'function main() { var test = 19; }');
+        checkMain('void main() { int test, foo = 2, bar; }', 'function main() { var test = 0, foo = 2, bar = 0; }');
     });
         
     it('should allow valid float initializations', function() {
-        checkMain(glsl.compile('void main() { float test = 1.0; }'),    'function main() { var test = (1.0); }');
-        checkMain(glsl.compile('void main() { float test = .04; }'),    'function main() { var test = 0.04; }');
-        checkMain(glsl.compile('void main() { float test = 0.50; }'),   'function main() { var test = 0.5; }');
-        checkMain(glsl.compile('void main() { float test = 55.23; }'),  'function main() { var test = 55.23; }');
-        checkMain(glsl.compile('void main() { float test = 5e3; }'),    'function main() { var test = (5000.0); }');
-        checkMain(glsl.compile('void main() { float test = 5.5e3; }'),  'function main() { var test = (5500.0); }');
-        checkMain(glsl.compile('void main() { float test = 5.5e-3; }'), 'function main() { var test = 0.0055; }');
-        checkMain(glsl.compile('void main() { float test = .5e3; }'),   'function main() { var test = (500.0); }');
-        checkMain(glsl.compile('void main() { float test, foo = 2.2, bar; }'), 'function main() { var test = (0.0), foo = 2.2, bar = (0.0); }');
+        checkMain('void main() { float test = 1.0; }',    'function main() { var test = (1.0); }');
+        checkMain('void main() { float test = .04; }',    'function main() { var test = 0.04; }');
+        checkMain('void main() { float test = 0.50; }',   'function main() { var test = 0.5; }');
+        checkMain('void main() { float test = 55.23; }',  'function main() { var test = 55.23; }');
+        checkMain('void main() { float test = 5e3; }',    'function main() { var test = (5000.0); }');
+        checkMain('void main() { float test = 5.5e3; }',  'function main() { var test = (5500.0); }');
+        checkMain('void main() { float test = 5.5e-3; }', 'function main() { var test = 0.0055; }');
+        checkMain('void main() { float test = .5e3; }',   'function main() { var test = (500.0); }');
+        checkMain('void main() { float test, foo = 2.2, bar; }', 'function main() { var test = (0.0), foo = 2.2, bar = (0.0); }');
         
     });
     
     it('should allow valid bool initializations', function() {
-        checkMain(glsl.compile('void main() { bool test = true; }'),  'function main() { var test = 1; }');
-        checkMain(glsl.compile('void main() { bool test = false; }'), 'function main() { var test = 0; }');
-        checkMain(glsl.compile('void main() { bool test, foo = true, bar; }'), 'function main() { var test = 0, foo = 1, bar = 0; }');
+        checkMain('void main() { bool test = true; }',  'function main() { var test = 1; }');
+        checkMain('void main() { bool test = false; }', 'function main() { var test = 0; }');
+        checkMain('void main() { bool test, foo = true, bar; }', 'function main() { var test = 0, foo = 1, bar = 0; }');
         
     });
     
