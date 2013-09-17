@@ -12,30 +12,28 @@ function checkMain(a, b) {
     compare(glsl.compile(a).split('\n').slice(5, -6).join('\n'), b);
 }
 
+function throws(source, error) {
+    assert.throws(function() {
+        glsl.compile(source);
+    }, error);
+}
+
 describe('main function', function() {
     
     it('should throw an error without a main function', function() {
-        assert.throws(function() {
-            glsl.compile('');
-        }, /Parse error/);
+        throws('', /Parse error/);
     });
     
     it('should throw an error if main function returns incorrect type', function() {
-        assert.throws(function() {
-            glsl.compile('int main() {}');
-        }, /main function must return void/);
+        throws('int main() {}', /main function must return void/);
     });
     
     it('should throw an error if main function accepts arguments', function() {
-        assert.throws(function() {
-            glsl.compile('void main(int a) {}')
-        }, /No main function found/);
+        throws('void main(int a) {}', /No main function found/);
     });
     
     it('should throw an error if main function doesn\'t have a body', function() {
-        assert.throws(function() {
-            glsl.compile('void main();');
-        }, /No main function found/);
+        throws('void main();', /No main function found/);
     });
     
     it('should generate asm.js boilerplate', function() {
@@ -96,122 +94,41 @@ describe('primative variable initializers', function() {
     });
     
     it('should throw on invalid int initializations', function() {
-        assert.throws(function() {
-            glsl.compile('void main() { int test = 1.0; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { int test = .04; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { int test = 0.50; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { int test = 55.23; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { int test = 5e3; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { int test = 5.5e3; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { int test = 5.5e-3; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { int test = .5e3; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { int test = true; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { int test = false; }');
-        }, /Left and right arguments are of differing types/);
+        throws('void main() { int test = 1.0; }', /Left and right arguments are of differing types/);        
+        throws('void main() { int test = .04; }', /Left and right arguments are of differing types/);        
+        throws('void main() { int test = 0.50; }', /Left and right arguments are of differing types/);        
+        throws('void main() { int test = 55.23; }', /Left and right arguments are of differing types/);        
+        throws('void main() { int test = 5e3; }', /Left and right arguments are of differing types/);        
+        throws('void main() { int test = 5.5e3; }', /Left and right arguments are of differing types/);        
+        throws('void main() { int test = 5.5e-3; }', /Left and right arguments are of differing types/);        
+        throws('void main() { int test = .5e3; }', /Left and right arguments are of differing types/);        
+        throws('void main() { int test = true; }', /Left and right arguments are of differing types/);        
+        throws('void main() { int test = false; }', /Left and right arguments are of differing types/);
     });
     
     
     it('should throw on invalid float initializations', function() {
-        assert.throws(function() {
-            glsl.compile('void main() { float test = 1; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { float test = 55; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { float test = 0x23; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { float test = 023; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { float test = true; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { float test = false; }');
-        }, /Left and right arguments are of differing types/);
+        throws('void main() { float test = 1; }', /Left and right arguments are of differing types/);        
+        throws('void main() { float test = 55; }', /Left and right arguments are of differing types/);        
+        throws('void main() { float test = 0x23; }', /Left and right arguments are of differing types/);        
+        throws('void main() { float test = 023; }', /Left and right arguments are of differing types/);        
+        throws('void main() { float test = true; }', /Left and right arguments are of differing types/);        
+        throws('void main() { float test = false; }', /Left and right arguments are of differing types/);
     });
     
     it('should throw on invalid bool initializations', function() {
-        assert.throws(function() {
-            glsl.compile('void main() { bool test = 1; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { bool test = 55; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { bool test = 0x23; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { bool test = 023; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { bool test = 1.0; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { bool test = .04; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { bool test = 0.50; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { bool test = 55.23; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { bool test = 5e3; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { bool test = 5.5e3; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { bool test = 5.5e-3; }');
-        }, /Left and right arguments are of differing types/);
-        
-        assert.throws(function() {
-            glsl.compile('void main() { bool test = .5e3; }');
-        }, /Left and right arguments are of differing types/);
+        throws('void main() { bool test = 1; }', /Left and right arguments are of differing types/);        
+        throws('void main() { bool test = 55; }', /Left and right arguments are of differing types/);        
+        throws('void main() { bool test = 0x23; }', /Left and right arguments are of differing types/);        
+        throws('void main() { bool test = 023; }', /Left and right arguments are of differing types/);        
+        throws('void main() { bool test = 1.0; }', /Left and right arguments are of differing types/);        
+        throws('void main() { bool test = .04; }', /Left and right arguments are of differing types/);        
+        throws('void main() { bool test = 0.50; }', /Left and right arguments are of differing types/);        
+        throws('void main() { bool test = 55.23; }', /Left and right arguments are of differing types/);        
+        throws('void main() { bool test = 5e3; }', /Left and right arguments are of differing types/);        
+        throws('void main() { bool test = 5.5e3; }', /Left and right arguments are of differing types/);        
+        throws('void main() { bool test = 5.5e-3; }', /Left and right arguments are of differing types/);        
+        throws('void main() { bool test = .5e3; }', /Left and right arguments are of differing types/);
     });
     
-})
+});
