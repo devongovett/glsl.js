@@ -7,7 +7,7 @@ glsl-start
     : translation_unit 'EOF' {
       // check for main function
       var main = yy.symbolTable.findFunction(new yy.CallExpression('main', []));
-      if (!main)
+      if (!main || !main.body)
         yy.error('No main function found');
       
       return new yy.Program($1);
@@ -227,8 +227,8 @@ function_call_header_no_parameters
 	;
 
 function_call_header_with_parameters
-	: function_call_header assignment_expression                          { $1.arguments.push($2); $$ = $1; }
-	| function_call_header_with_parameters 'COMMA' assignment_expression  { $1.arguments.push($3); $$ = $1; }
+	: function_call_header assignment_expression                          { $1.addArgument($2); $$ = $1; }
+	| function_call_header_with_parameters 'COMMA' assignment_expression  { $1.addArgument($3); $$ = $1; }
 	;
 
 /* Grammar Note: Constructors look like functions, but lexical analysis recognized most of them as

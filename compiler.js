@@ -15,10 +15,7 @@ exports.parse = function(source) {
 };
 
 exports.compile = function(source) {
-  return escodegen.generate(exports.parse(source));
+  return escodegen.generate(exports.parse(source), {
+      verbatim: 'verbatim'
+  });
 };
-
-var fs = require('fs');
-var source = fs.readFileSync('test.glsl', 'utf8');
-
-console.log(exports.compile(source));

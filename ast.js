@@ -309,8 +309,12 @@ function VariableDeclarator(name, value, arraySize) {
     this.typeof = null;
     
     // apply logic from AssignmentExpression if an initializer was given
-    if (value != null)
-        this.init = AssignmentExpression.create(new Identifier(name, value.typeof), '=', value).right;
+    if (value != null) {
+        if (value instanceof ArrayExpression)
+            this.init = value.generateStack();
+        else
+            this.init = AssignmentExpression.create(new Identifier(name, value.typeof), '=', value).right;
+    }
 }
 
 VariableDeclarator.defaults = {
@@ -336,11 +340,12 @@ VariableDeclarator.prototype.initDefault = function(type) {
             this.init = new NewExpression(arrayType, [new Literal(this.arraySize)], type);
         } else if (/vec/.test(type)) {
             var count = Expression.prototype._types[type];
+            var arg = new Literal(0, Expression.prototype._componentTypes[type])
             var args = [];
             for (var i = 0; i < count; i++)
-                args.push(new Literal(0));
+                args.push(arg);
                 
-            this.init = new ArrayExpression(type, args);
+            this.init = new ArrayExpression(type, args).generateStack();
         } else if (type in VariableDeclarator.defaults) {                
             this.init = new Literal(VariableDeclarator.defaults[type], type);
         }
@@ -622,43 +627,26 @@ function AssignmentExpression(left, operator, right) {
 AssignmentExpression.prototype = new Expression;
 AssignmentExpression.create = function(left, operator, right) {
     if (right.isScalar())
-        return new AssignmentExpression(left, '=', right);
+        return new AssignmentExpression(left, operator, right);
         
-    if (left instanceof Swizzle) {
-        if (left.typeof !== right.typeof)
-            error('Left and right arguments are of differing types');
+    if (left.typeof !== right.typeof)
+        error('Left and right arguments are of differing types');
         
-        var count = left.componentCount();
-        var args = [];
-        var offsets = {};
-        for (var i = 0; i < count; i++) {
-            if (offsets[left.offsets[i]])
-                error('Cannot assign to swizzle with duplicate components');
-            
-            offsets[left.offsets[i]] = true;
-            args.push(new AssignmentExpression(left.getComponent(i), operator, right.getComponent(i)));
-        }
-        
-        args.push(left.componentIndex(0));
-        return new SequenceExpression(args);
+    var count = left.componentCount();
+    var args = [];
+    var offsets = {};
+    for (var i = 0; i < count; i++) {
+      if (left instanceof Swizzle) {    
+          if (offsets[left.offsets[i]])
+              error('Cannot assign to swizzle with duplicate components');
+  
+          offsets[left.offsets[i]] = true;
+      }
+      args.push(new AssignmentExpression(left.getComponent(i), operator, right.getComponent(i)));
     }
-        
-    if (operator === '=') {
-        if (right instanceof Identifier || right instanceof Swizzle) {
-            // make a clone
-            var count = right.componentCount();
-            var args = [];
-            for (var i = 0; i < count; i++) {
-                args.push(right.getComponent(i));
-            }
-        
-            return new AssignmentExpression(left, '=', new ArrayExpression(right.typeof, args));
-        }
-        
-        return new AssignmentExpression(left, '=', right.generateStack ? right.generateStack() : right);
-    }
-        
-    return new AssignmentExpression(left, '=', BinaryExpression.create(left, operator[0], right));
+
+    args.push(left.componentIndex(0));
+    return new SequenceExpression(args);
 }
 
 exports.AssignmentExpression = AssignmentExpression;
@@ -742,6 +730,13 @@ function CallExpression(callee, arguments) {
 }
 
 CallExpression.prototype = new Expression;
+CallExpression.prototype.addArgument = function(arg) {
+    if (arg instanceof ArrayExpression)
+        arg = arg.generateStack();
+        
+    this.arguments.push(arg);
+}
+
 exports.CallExpression = CallExpression;
 
 /*
@@ -776,6 +771,17 @@ function Literal(value, type) {
     this.type = "Literal";
     this.value = value;
     this.typeof = type;
+    
+    // TODO: improve. this is the only way we have right now to 
+    // generate floating point literals via escodegen
+    if (type === 'float' && String(value).indexOf('.') === -1) {
+        this.verbatim = String(value) + '.0';
+    }
+    
+    // Make booleans into integers (for asm.js)
+    if (type === 'bool') {
+        this.value = +value;
+    }
 }
 
 Literal.prototype = new Expression;
