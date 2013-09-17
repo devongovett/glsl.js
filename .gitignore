@@ -3,4 +3,5 @@ node_modules/
 experiments/
 glsl.js
 test.glsl
-./test.js
+test.js
+!tests/*
