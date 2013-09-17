@@ -48,14 +48,20 @@ describe('primative variable declarations', function() {
     
     it('should default ints to 0', function() {
         checkMain(glsl.compile('void main() { int test; }'), 'function main() { var test = 0; }');
+        checkMain(glsl.compile('void main() { int test, foo; }'), 'function main() { var test = 0, foo = 0; }');
+        
     });
     
     it('should default floats to 0.0', function() {
         checkMain(glsl.compile('void main() { float test; }'), 'function main() { var test = (0.0); }');
+        checkMain(glsl.compile('void main() { float test, foo; }'), 'function main() { var test = (0.0), foo = (0.0); }');
+        
     });
     
     it('should default bools to 0 (false)', function() {
         checkMain(glsl.compile('void main() { bool test; }'), 'function main() { var test = 0; }');
+        checkMain(glsl.compile('void main() { bool test, foo; }'), 'function main() { var test = 0, foo = 0; }');
+        
     });
         
 });
@@ -66,6 +72,7 @@ describe('primative variable initializers', function() {
         checkMain(glsl.compile('void main() { int test = 55; }'),   'function main() { var test = 55; }');
         checkMain(glsl.compile('void main() { int test = 0x23; }'), 'function main() { var test = 35; }');
         checkMain(glsl.compile('void main() { int test = 023; }'),  'function main() { var test = 19; }');
+        checkMain(glsl.compile('void main() { int test, foo = 2, bar; }'), 'function main() { var test = 0, foo = 2, bar = 0; }');
     });
         
     it('should allow valid float initializations', function() {
@@ -77,11 +84,15 @@ describe('primative variable initializers', function() {
         checkMain(glsl.compile('void main() { float test = 5.5e3; }'),  'function main() { var test = (5500.0); }');
         checkMain(glsl.compile('void main() { float test = 5.5e-3; }'), 'function main() { var test = 0.0055; }');
         checkMain(glsl.compile('void main() { float test = .5e3; }'),   'function main() { var test = (500.0); }');
+        checkMain(glsl.compile('void main() { float test, foo = 2.2, bar; }'), 'function main() { var test = (0.0), foo = 2.2, bar = (0.0); }');
+        
     });
     
     it('should allow valid bool initializations', function() {
         checkMain(glsl.compile('void main() { bool test = true; }'),  'function main() { var test = 1; }');
         checkMain(glsl.compile('void main() { bool test = false; }'), 'function main() { var test = 0; }');
+        checkMain(glsl.compile('void main() { bool test, foo = true, bar; }'), 'function main() { var test = 0, foo = 1, bar = 0; }');
+        
     });
     
     it('should throw on invalid int initializations', function() {
