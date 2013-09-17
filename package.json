@@ -1,0 +1,30 @@
+{
+  "name": "glsl",
+  "version": "0.0.1",
+  "description": "A GLSL to ASM.js compiler",
+  "main": "compiler.js",
+  "directories": {
+    "test": "tests"
+  },
+  "devDependencies": {
+    "escodegen": "~0.0.15",
+    "mocha": "~1.13.0"
+  },
+  "scripts": {
+    "test": "mocha tests/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/devongovett/glsl.js.git"
+  },
+  "keywords": [
+    "glsl",
+    "compiler",
+    "asm.js"
+  ],
+  "author": "Devon Govett",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/devongovett/glsl.js/issues"
+  }
+}
