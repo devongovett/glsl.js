@@ -7,7 +7,7 @@ glsl-start
     : translation_unit 'EOF' {
       // check for main function
       var main = yy.symbolTable.findFunction(new yy.CallExpression('main', []));
-      if (!main || !main.body)
+      if (!yy.ignoreMain && (!main || !main.body))
         yy.error('No main function found');
       
       return new yy.Program($1);

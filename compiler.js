@@ -7,15 +7,16 @@ var yy = glsl.yy;
 for (var key in ast)
   yy[key] = ast[key];
 
-exports.parse = function(source) {
+exports.parse = function(source, options) {
   yy.symbolTable = new SymbolTable();
   yy.loopLevel = 0;
+  yy.ignoreMain = options && options.ignoreMain;
   
   return glsl.parse(source);
 };
 
-exports.compile = function(source) {
-  return escodegen.generate(exports.parse(source), {
+exports.compile = function(source, options) {
+  return escodegen.generate(exports.parse(source, options), {
       verbatim: 'verbatim'
   });
 };
