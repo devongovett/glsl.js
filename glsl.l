@@ -137,7 +137,7 @@ O           [0-7]
 
 "0"[xX]{H}+    { yytext = parseInt(yytext.slice(2), 16); return 'INTCONSTANT'; }
 "0"{O}+        { yytext = parseInt(yytext, 8); return 'INTCONSTANT'; }
-"0"{D}+        { error("Invalid Octal number."); return 0; }
+"0"{D}+        { yy.error("Invalid Octal number."); return 0; }
 {D}+           { yytext = parseInt(yytext); return 'INTCONSTANT'; }
 
 "+="        { return 'ADD_ASSIGN'; }
@@ -196,10 +196,10 @@ O           [0-7]
 
 [ \t\v\n\f\r]   {  }
 <*><<EOF>>      { return 'EOF'; }
-<*>.            { error("Unknown char " + yytext); return 0; }
+<*>.            { yy.error("Unknown char " + yytext); return 0; }
 
 %%
 
 function reservedWord() {
-    error("Illegal use of reserved word " + yytext);
+    yy.error("Illegal use of reserved word " + yytext);
 }
