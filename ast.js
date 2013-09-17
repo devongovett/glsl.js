@@ -346,7 +346,7 @@ VariableDeclarator.prototype.initDefault = function(type) {
                 args.push(arg);
                 
             this.init = new ArrayExpression(type, args).generateStack();
-        } else if (type in VariableDeclarator.defaults) {                
+        } else if (type in VariableDeclarator.defaults) {    
             this.init = new Literal(VariableDeclarator.defaults[type], type);
         }
     }
@@ -377,7 +377,7 @@ Expression.prototype = {
     },
     
     isScalar: function() {
-        return !this.isVector() && !this.isMatrix() && !this.isArray && this.typeof !== 'bool';
+        return !this.isVector() && !this.isMatrix() && !this.isArray;// && this.typeof !== 'bool';
     },
     
     componentCount: function() {
