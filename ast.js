@@ -392,7 +392,7 @@ Expression.prototype = {
             return this;
             
         var type = this.componentType();
-        var stack = new Identifier('$$STACK_' + type[0].toUpperCase(), type);
+        var stack = new Identifier('$$STACK_' + (type == 'bool' || type == 'int' ? 'I' : 'F'), type);
         
         var ret = new MemberExpression(stack, this.componentIndex(index), true);
         ret.typeof = type;
@@ -420,7 +420,7 @@ ArrayExpression.prototype.getComponent = function(index) {
 ArrayExpression.prototype.generateStack = function() {
     var list = [];
     var type = this.componentType();
-    var stack = new Identifier('$$STACK_' + type[0].toUpperCase(), type);
+    var stack = new Identifier('$$STACK_' + (type == 'bool' || type == 'int' ? 'I' : 'F'), type);
     var stackTop = new UpdateExpression('++', new Identifier('$$STACKTOP'));
     
     for (var i = 0; i < this.elements.length; i++) {
