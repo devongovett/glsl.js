@@ -702,7 +702,7 @@ function LogicalExpression(left, operator, right) {
 }
 
 LogicalExpression.prototype = new Expression;
-exports.LogicalExpression = Expression;
+exports.LogicalExpression = LogicalExpression;
 
 function ConditionalExpression(test, consequent, alternate) {
     this.type = "ConditionalExpression";
