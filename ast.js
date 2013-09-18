@@ -253,7 +253,7 @@ FunctionDeclaration.prototype = {
   setBody: function(body) {
     // generate asm.js type annotations
     var block = body.body;
-    for (var i = 0; i < this.params.length; i++) {
+    for (var i = this.params.length - 1; i >= 0; i--) {
       var expression = null;
       switch (this.params[i].typeof) {
         case 'int':
