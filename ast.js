@@ -162,10 +162,13 @@ exports.ContinueStatement = ContinueStatement;
 
 function ReturnStatement(arg) {
     this.type = "ReturnStatement";
-    // this.argument = arg;
     
-    if (arg.typeof == 'int') {
-      
+    if (arg.typeof == 'int' && !arg.isCast) {
+      arg = new BinaryExpression(arg, '|', new Literal(0));
+    }
+    
+    if (arg.typeof == 'float' && !arg.isCast) {
+      arg = new UnaryExpression('+', arg);
     }
     
     this.argument = arg;
@@ -821,6 +824,7 @@ function convertArg(type, arg) {
         case 'float':
             if (arg.typeof !== 'float') {
                 arg = new UnaryExpression('+', arg);
+                arg.isCast = true;
             }
             
             arg.typeof = 'float';
@@ -831,7 +835,8 @@ function convertArg(type, arg) {
         case 'ivec4':
         case 'int':
             if (arg.typeof !== 'int') {
-                arg = new BinaryExpression(arg, '|', new Literal(0, arg.typeof));
+                arg = new BinaryExpression(arg, '|', new Literal(0));
+                arg.isCast = true;
                 arg.typeof = 'int';
             }
             
@@ -843,6 +848,7 @@ function convertArg(type, arg) {
         case 'bool':
             if (arg.typeof !== 'bool') {
                 arg = new UnaryExpression('!', new UnaryExpression('!', arg));
+                arg.isCast = true;
                 arg.typeof = 'bool';
             }
             
