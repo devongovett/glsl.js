@@ -165,10 +165,10 @@ function ReturnStatement(arg) {
     
     if (arg.typeof == 'int' && !arg.isCast) {
       arg = new BinaryExpression(arg, '|', new Literal(0));
-    }
-    
-    if (arg.typeof == 'float' && !arg.isCast) {
+    } else if (arg.typeof == 'float' && !arg.isCast) {
       arg = new UnaryExpression('+', arg);
+    } else if (arg instanceof ArrayExpression) {
+      arg = arg.generateStack();
     }
     
     this.argument = arg;
