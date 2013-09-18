@@ -835,7 +835,11 @@ function convertArg(type, arg) {
         case 'ivec4':
         case 'int':
             if (arg.typeof !== 'int') {
-                arg = new BinaryExpression(arg, '|', new Literal(0));
+                if (arg.typeof == 'float')
+                  arg = new UnaryExpression('~~', arg);
+                else 
+                  arg = new BinaryExpression(arg, '|', new Literal(0));
+                  
                 arg.isCast = true;
                 arg.typeof = 'int';
             }
