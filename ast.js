@@ -545,13 +545,7 @@ function BinaryExpression(left, operator, right) {
     this.left = left
     this.operator = operator;
     this.right = right;
-    
     this.typeof = operator in BinaryExpression.boolTypes ? 'bool' : left.typeof;
-    if (left.typeof !== right.typeof)
-        error('Left and right arguments are of differing types');
-        
-    if (left.isArray || right.isArray)
-        error('Cannot apply operation', operator, 'to an array');
 }
 
 BinaryExpression.create = function(left, operator, right) {
@@ -580,6 +574,12 @@ BinaryExpression.create = function(left, operator, right) {
             return new ArrayExpression(type, args);
         }
     }
+    
+    if (left.typeof !== right.typeof)
+        error('Left and right arguments are of differing types');
+        
+    if (left.isArray || right.isArray)
+        error('Cannot apply operation', operator, 'to an array');
     
     return new BinaryExpression(left, operator, right);
 }
