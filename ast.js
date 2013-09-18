@@ -585,7 +585,7 @@ BinaryExpression.create = function(left, operator, right) {
 }
 
 BinaryExpression.boolTypes = {
-    '===': true, '!==': true, '<': true, '<=': true, '>': true, '>=': true
+    '==': true, '!=': true, '<': true, '<=': true, '>': true, '>=': true
 };
 
 BinaryExpression.scalarTypes = {
