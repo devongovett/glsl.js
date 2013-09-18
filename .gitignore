@@ -5,3 +5,4 @@ glsl.js
 test.glsl
 test.js
 !tests/*
+testasm.*

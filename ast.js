@@ -163,15 +163,11 @@ exports.ContinueStatement = ContinueStatement;
 function ReturnStatement(arg) {
     this.type = "ReturnStatement";
     
-    if (arg.typeof == 'int' && !arg.isCast) {
-      arg = new BinaryExpression(arg, '|', new Literal(0));
-    } else if (arg.typeof == 'float' && !arg.isCast) {
-      arg = new UnaryExpression('+', arg);
-    } else if (arg instanceof ArrayExpression) {
+    if (arg instanceof ArrayExpression) {
       arg = arg.generateStack();
     }
     
-    this.argument = arg;
+    this.argument = cast(arg);
 }
 
 exports.ReturnStatement = ReturnStatement;
@@ -254,27 +250,15 @@ FunctionDeclaration.prototype = {
     // generate asm.js type annotations
     var block = body.body;
     for (var i = this.params.length - 1; i >= 0; i--) {
-      var expression = null;
-      switch (this.params[i].typeof) {
-        case 'int':
-          expression = new BinaryExpression(this.params[i], '|', new Literal(0, 'int'));
-          break;
-        case 'float':
-          expression = new UnaryExpression('+', this.params[i]);
-          break;
-      }
-      
-      if (expression) {
         block.unshift(
           new ExpressionStatement(
             new AssignmentExpression(
               this.params[i],
               '=',
-              expression
+              cast(this.params[i])
             )
           )
         );
-      }
     }
     
     this.body = body;
@@ -615,8 +599,11 @@ function AssignmentExpression(left, operator, right) {
     this.left = left
     this.operator = operator;
     this.right = right;
-    
     this.typeof = left.typeof;
+}
+
+AssignmentExpression.prototype = new Expression;
+AssignmentExpression.create = function(left, operator, right) {
     if (left.typeof !== right.typeof)
         error('Left and right arguments are of differing types');
         
@@ -625,15 +612,9 @@ function AssignmentExpression(left, operator, right) {
         
     if (!(left instanceof Identifier || left instanceof MemberExpression))
         error('Cannot assign to a non-identifier');
-}
-
-AssignmentExpression.prototype = new Expression;
-AssignmentExpression.create = function(left, operator, right) {
+    
     if (right.isScalar())
         return new AssignmentExpression(left, operator, right);
-        
-    if (left.typeof !== right.typeof)
-        error('Left and right arguments are of differing types');
         
     var count = left.componentCount();
     var args = [];
@@ -812,55 +793,61 @@ Swizzle.prototype.getComponent = function(index) {
 
 exports.Swizzle = Swizzle;
 
-// Helper function used to convert types
-function convertArg(type, arg) {
+// Does a asm.js cast
+function cast(value, type) {
+    type = type || value.typeof;
+    if (type == null)
+      return value;
+    
     switch (type) {
+        case 'float':
+            if (value.typeof !== 'float' || (!value.isCast && !(value instanceof Literal))) {
+                value = new UnaryExpression('+', value);
+                value.isCast = true;
+            }
+            
+            value.typeof = 'float';
+            return value;
+            
+        // All pointer types map to ints
         case 'vec2':
         case 'vec3':
         case 'vec4':
         case 'mat2':
         case 'mat3':
         case 'mat4':
-        case 'float':
-            if (arg.typeof !== 'float') {
-                arg = new UnaryExpression('+', arg);
-                arg.isCast = true;
-            }
-            
-            arg.typeof = 'float';
-            return arg;
-            
         case 'ivec2':
         case 'ivec3':
         case 'ivec4':
-        case 'int':
-            if (arg.typeof !== 'int') {
-                if (arg.typeof == 'float')
-                  arg = new UnaryExpression('~~', arg);
-                else 
-                  arg = new BinaryExpression(arg, '|', new Literal(0));
-                  
-                arg.isCast = true;
-                arg.typeof = 'int';
-            }
-            
-            return arg;
-            
         case 'bvec2':
         case 'bvec3':
         case 'bvec4':
-        case 'bool':
-            if (arg.typeof !== 'bool') {
-                arg = new UnaryExpression('!', new UnaryExpression('!', arg));
-                arg.isCast = true;
-                arg.typeof = 'bool';
+        case 'int':
+            if (value.typeof !== 'int' || (!value.isCast && !(value instanceof Literal))) {
+                if (value.typeof == 'float') {
+                    value = new UnaryExpression('~~', value);
+                } else {
+                    value = new BinaryExpression(value, '|', new Literal(0));
+                    value.isCast = true;
+                }
+                
+                value.typeof = 'int';
             }
             
-            return arg;
+            return value;
+            
+        // bools map to ints too, but must keep their `typeof` set to 'bool'
+        case 'bool':
+            if (value.typeof !== 'bool' || (!value.isCast && !(value instanceof Literal))) {
+                value = cast(value, 'int');
+                value.typeof = 'bool';
+            }
+            
+            return value;
             
         default:
-            error('unsupported construction');
+            error('unsupported type conversion');
     }
 }
 
-exports.convertArg = convertArg;
+exports.cast = cast;

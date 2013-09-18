@@ -172,7 +172,7 @@ function_call
                 
                 // if this is a scalar, just add it to the vector directly
                 if (count === 1) {
-                    args.elements.push(yy.convertArg(type, arg));
+                    args.elements.push(yy.cast(arg, type));
                     length++;
                     
                 // copy the arguments over from the other vector
@@ -211,7 +211,7 @@ function_call
         
             $1.callee.name = fn.id.name;
             $1.typeof = fn.returnType;
-            $$ = $1;
+            $$ = yy.cast($1, fn.returnType);
         }
     }
     ;
