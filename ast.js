@@ -103,7 +103,7 @@ function Program(body) {
 }
 
 Program.prototype.addStatement = function(statement) {
-    this.block.push(statement);
+    this.block.addStatement(statement);
 }
 
 exports.Program = Program;
@@ -113,11 +113,12 @@ exports.Program = Program;
  */
 function BlockStatement(body) {
     this.type = "BlockStatement";
-    this.body = body || [];
+    this.body = [];
+    this.addStatement(body);
 }
 
 BlockStatement.prototype.addStatement = function(statement) {
-    this.body.push(statement);
+    this.body.push.apply(this.body, Array.isArray(statement) ? statement : [statement]);
 }
 
 exports.BlockStatement = BlockStatement;
@@ -168,6 +169,11 @@ function ReturnStatement(arg) {
     }
     
     this.argument = cast(arg);
+    
+    return [
+        new ExpressionStatement(new AssignmentExpression(new Identifier('$$STACKTOP'), '=', new Identifier('$$sp'))),
+        this
+    ];
 }
 
 exports.ReturnStatement = ReturnStatement;
@@ -247,21 +253,28 @@ FunctionDeclaration.prototype = {
   },
   
   setBody: function(body) {
-    // generate asm.js type annotations
-    var block = body.body;
-    for (var i = this.params.length - 1; i >= 0; i--) {
-        block.unshift(
-          new ExpressionStatement(
-            new AssignmentExpression(
-              this.params[i],
-              '=',
-              cast(this.params[i])
+      this.body = body;
+      
+      // generate asm.js type annotations
+      var block = body.body;
+      var header = [];
+      for (var i = 0; i < this.params.length; i++) {
+          header.push(
+            new ExpressionStatement(
+              new AssignmentExpression(
+                this.params[i],
+                '=',
+                cast(this.params[i])
+              )
             )
-          )
-        );
-    }
-    
-    this.body = body;
+          );
+      }
+      
+      header.push(new VariableDeclaration('int', [
+          new VariableDeclarator('$$sp', new Identifier('$$STACKTOP'))
+      ]));
+      
+      block.unshift.apply(block, header);
   }
 };
 
@@ -283,24 +296,42 @@ function VariableDeclaration(type, declarations) {
     this.kind = "var"; // TODO: use const
     this.declarations = declarations || [];
     this.typeof = type;
+    
+    var expressions = [this];
+    for (var i = 0; i < this.declarations.length; i++) {
+        if (declarations[i].assignment) {
+            expressions.push(
+                new ExpressionStatement(
+                    new AssignmentExpression.create(
+                        declarations[i].id,
+                        '=',
+                        declarations[i].assignment
+                    )
+                )
+            );
+        }
+    }
+    
+    return expressions.length > 1 ? expressions : this;
 }
 
 exports.VariableDeclaration = VariableDeclaration;
 
 function VariableDeclarator(name, value, arraySize) {
     this.type = "VariableDeclarator";
-    this.id = new Identifier(name);
+    this.id = new Identifier(name, value && value.typeof);
     this.init = null;
     this.arraySize = arraySize || 0;
     this.isArray = this.arraySize > 0;
     this.typeof = null;
+    this.assignment = null;
     
     // apply logic from AssignmentExpression if an initializer was given
     if (value != null) {
         if (value instanceof ArrayExpression)
             this.init = value.generateStack();
         else
-            this.init = AssignmentExpression.create(new Identifier(name, value.typeof), '=', value).right;
+            this.init = AssignmentExpression.create(this.id, '=', value).right;
     }
 }
 
@@ -310,6 +341,12 @@ VariableDeclarator.defaults = {
 
 VariableDeclarator.prototype.initDefault = function(type) {
     this.typeof = type;
+    this.id.typeof = type;
+    
+    if (!(this.init instanceof Literal)) {
+        this.assignment = this.init;
+        this.init = null;
+    }
     
     if (!this.init) {
         // mat3 -> [vec3(0.0), vec3(0.0), vec3(0.0)]
@@ -384,7 +421,11 @@ Expression.prototype = {
     },
     
     componentIndex: function(index) {
-        return index == 0 ? this : new BinaryExpression(this, '+', new Literal(index, this.typeof));
+        return new BinaryExpression(
+            index == 0 ? this : new BinaryExpression(this, '+', new Literal(index, this.typeof)),
+            '>>',
+            new Literal(2)
+        );
     },
     
     getComponent: function(index) {

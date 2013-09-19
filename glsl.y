@@ -152,9 +152,6 @@ function_call
             if (!expectedCount)
                 yy.error('Unsupported constructor');
                 
-            // $$STACKTOP += counts[type];
-            // $$STACKF8[$$STACKTOP] = 
-                
             var ret = new yy.ArrayExpression(type);
             var args = ret;
             var full = false;
@@ -653,8 +650,8 @@ compound_statement_no_new_scope
     ;
     
 statement_list
-    : statement                     { $$ = new yy.BlockStatement([$1]); }
-    | statement_list statement      { $1.body.push($2); $$ = $1; }
+    : statement                     { $$ = new yy.BlockStatement($1); }
+    | statement_list statement      { $1.addStatement($2); $$ = $1; }
     ;
     
 expression_statement
@@ -770,8 +767,8 @@ jump_statement
     ;
 
 translation_unit
-    : external_declaration                  { $$ = [$1]; }
-    | translation_unit external_declaration { if ($2) $1.push($2); $$ = $1; }
+    : external_declaration                  { $$ = Array.isArray($1) ? $1 : [$1]; }
+    | translation_unit external_declaration { if ($2) $1.push.apply($1, Array.isArray($2) ? $2 : [$2]); $$ = $1; }
     ;
     
 external_declaration
