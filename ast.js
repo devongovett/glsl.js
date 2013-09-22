@@ -165,15 +165,16 @@ function ReturnStatement(arg) {
     this.type = "ReturnStatement";
     
     if (arg instanceof ArrayExpression) {
-      arg = arg.generateStack();
+        var rp = new Identifier('$$rp', arg.typeof);
+        this.argument = cast(rp);
+        
+        return [
+            new ExpressionStatement(AssignmentExpression.create(rp, '=', arg)),
+            this
+        ];
+    } else {
+        this.argument = cast(arg);
     }
-    
-    this.argument = cast(arg);
-    
-    return [
-        new ExpressionStatement(new AssignmentExpression(new Identifier('$$STACKTOP'), '=', new Identifier('$$sp'))),
-        this
-    ];
 }
 
 exports.ReturnStatement = ReturnStatement;
@@ -224,8 +225,10 @@ function FunctionDeclaration(type, name, params, body) {
     this.type = "FunctionDeclaration";
     this.id = name ? new Identifier(name) : null;
     this.params = params || [];
+    this.declarations = [];
     this.body = body;
     this.returnType = type;
+    this.usesStack = false;
     
     if (name == 'main') {
       if (type !== 'void')
@@ -237,45 +240,101 @@ function FunctionDeclaration(type, name, params, body) {
 }
 
 FunctionDeclaration.prototype = {
-  equals: function(other) {
-    if (!(other instanceof FunctionDeclaration))
-        return false;
-                        
-    if (this.params.length !== other.params.length)
-        return false;
-        
-    for (var i = 0; i < this.params.length; i++) {
-        if (this.params[i].typeof !== other.params[i].typeof)
-            return false;
-    }
-    
-    return true;
-  },
-  
-  setBody: function(body) {
-      this.body = body;
-      
-      // generate asm.js type annotations
-      var block = body.body;
-      var header = [];
+    equals: function(other) {
+      if (!(other instanceof FunctionDeclaration))
+          return false;
+                          
+      if (this.params.length !== other.params.length)
+          return false;
+          
       for (var i = 0; i < this.params.length; i++) {
-          header.push(
-            new ExpressionStatement(
-              new AssignmentExpression(
-                this.params[i],
-                '=',
-                cast(this.params[i])
-              )
-            )
-          );
+          if (this.params[i].typeof !== other.params[i].typeof)
+              return false;
       }
       
-      header.push(new VariableDeclaration('int', [
-          new VariableDeclarator('$$sp', new Identifier('$$STACKTOP'))
-      ]));
-      
-      block.unshift.apply(block, header);
-  }
+      return true;
+    },
+    
+    addParam: function(param) {
+        this.params.push(param);
+    },
+    
+    addDeclarations: function(declaration) {
+        this.declarations.push(declaration);
+        
+        if (!this.usesStack && Expression.prototype._types[declaration.typeof] > 1) {
+            this.usesStack = true;
+        }
+    },
+    
+    setBody: function(body) {
+        this.body = body;
+        
+        // generate asm.js type annotations
+        var block = body.body;
+        var header = [];
+        for (var i = 0; i < this.params.length; i++) {
+            header.push(
+              new ExpressionStatement(
+                new AssignmentExpression(
+                  this.params[i],
+                  '=',
+                  cast(this.params[i])
+                )
+              )
+            );
+        }
+        
+        var stackTop = new Identifier('$$STACKTOP');
+        var assignments = [];
+        
+        // check if we need to save the return address (the function returns a non-primative type)
+        if (Expression.prototype._types[this.returnType] > 1) {
+            this.declarations.push(new VariableDeclaration('int', [
+                new VariableDeclarator('$$rp')
+            ]));
+            
+            assignments.push(new ExpressionStatement(
+                new AssignmentExpression(new Identifier('$$rp'), '=', stackTop))
+            );
+            
+            var stackTop = new AssignmentExpression(
+                new Identifier('$$STACKTOP', 'int'), 
+                '+=', 
+                new Literal(Expression.prototype._types[this.returnType] * 4, 'int')
+            );
+            
+            if (!this.usesStack) {
+                assignments.push(new ExpressionStatement(stackTop));
+            }
+        }
+        
+        // save stack pointer if needed
+        if (this.usesStack) {
+            this.declarations.push(new VariableDeclaration('int', [
+                new VariableDeclarator('$$sp')
+            ]));
+            
+            assignments.push(new ExpressionStatement(
+                new AssignmentExpression(new Identifier('$$sp', 'int'), '=', stackTop)
+            ));
+        }
+        
+        // hoist variable declarations and initialize to default asm.js values
+        for (var i = 0; i < this.declarations.length; i++) {
+            var dec = this.declarations[i];
+            var decs = dec.declarations.map(function(d) {
+                var ret = new VariableDeclarator(d.id.name);
+                ret.init = new Literal(0, d.typeof == 'float' ? 'float' : 'int');
+                return ret;
+            });
+            
+            header.push(new VariableDeclaration(dec.typeof, decs));
+        }
+        
+        header.push.apply(header, assignments);
+        block.unshift.apply(block, header);
+    }
 };
 
 exports.FunctionDeclaration = FunctionDeclaration;
@@ -296,23 +355,24 @@ function VariableDeclaration(type, declarations) {
     this.kind = "var"; // TODO: use const
     this.declarations = declarations || [];
     this.typeof = type;
+}
+
+VariableDeclaration.prototype.getAssignments = function() {
+    var assignments = [];
     
-    var expressions = [this];
     for (var i = 0; i < this.declarations.length; i++) {
-        if (declarations[i].assignment) {
-            expressions.push(
-                new ExpressionStatement(
-                    new AssignmentExpression.create(
-                        declarations[i].id,
-                        '=',
-                        declarations[i].assignment
-                    )
-                )
+        var size = Expression.prototype._types[this.declarations[i].typeof];
+        if (size > 1) {
+            assignments.push(
+                new AssignmentExpression(this.declarations[i].id, '=', new Identifier('$$STACKTOP', 'int')),
+                new AssignmentExpression(new Identifier('$$STACKTOP', 'int'), '+=', new Literal(Expression.prototype._types[this.declarations[i].typeof] * 4, 'int'))
             );
         }
+        
+        assignments.push(AssignmentExpression.create(this.declarations[i].id, '=', this.declarations[i].init));
     }
     
-    return expressions.length > 1 ? expressions : this;
+    return new ExpressionStatement(new SequenceExpression(assignments));
 }
 
 exports.VariableDeclaration = VariableDeclaration;
@@ -320,19 +380,10 @@ exports.VariableDeclaration = VariableDeclaration;
 function VariableDeclarator(name, value, arraySize) {
     this.type = "VariableDeclarator";
     this.id = new Identifier(name, value && value.typeof);
-    this.init = null;
+    this.init = value;
     this.arraySize = arraySize || 0;
     this.isArray = this.arraySize > 0;
     this.typeof = null;
-    this.assignment = null;
-    
-    // apply logic from AssignmentExpression if an initializer was given
-    if (value != null) {
-        if (value instanceof ArrayExpression)
-            this.init = value.generateStack();
-        else
-            this.init = AssignmentExpression.create(this.id, '=', value).right;
-    }
 }
 
 VariableDeclarator.defaults = {
@@ -342,11 +393,6 @@ VariableDeclarator.defaults = {
 VariableDeclarator.prototype.initDefault = function(type) {
     this.typeof = type;
     this.id.typeof = type;
-    
-    if (!(this.init instanceof Literal)) {
-        this.assignment = this.init;
-        this.init = null;
-    }
     
     if (!this.init) {
         // mat3 -> [vec3(0.0), vec3(0.0), vec3(0.0)]
@@ -374,6 +420,8 @@ VariableDeclarator.prototype.initDefault = function(type) {
             this.init = new Literal(VariableDeclarator.defaults[type], type);
         }
     }
+    
+    return this;
 }
 
 exports.VariableDeclarator = VariableDeclarator;
@@ -422,7 +470,7 @@ Expression.prototype = {
     
     componentIndex: function(index) {
         return new BinaryExpression(
-            index == 0 ? this : new BinaryExpression(this, '+', new Literal(index, this.typeof)),
+            index == 0 ? this : new BinaryExpression(this, '+', new Literal(index * 4, this.typeof)),
             '>>',
             new Literal(2)
         );
@@ -433,7 +481,7 @@ Expression.prototype = {
             return this;
             
         var type = this.componentType();
-        var stack = new Identifier('$$STACK_' + (type == 'bool' || type == 'int' ? 'I' : 'F'), type);
+        var stack = new Identifier('$$STACK_' + (type == 'float' ? 'F' : 'I'), type);
         
         var ret = new MemberExpression(stack, this.componentIndex(index), true);
         ret.typeof = type;
@@ -638,9 +686,15 @@ exports.BinaryExpression = BinaryExpression;
 function AssignmentExpression(left, operator, right) {
     this.type = "AssignmentExpression";
     this.left = left
-    this.operator = operator;
+    this.operator = '=';
     this.right = right;
     this.typeof = left.typeof;
+    
+    if (operator != '=') {
+        this.right = new BinaryExpression(left, operator[0], right);
+    }
+    
+    this.right = cast(this.right);
 }
 
 AssignmentExpression.prototype = new Expression;
@@ -670,7 +724,6 @@ AssignmentExpression.create = function(left, operator, right) {
       args.push(new AssignmentExpression(left.getComponent(i), operator, right.getComponent(i)));
     }
 
-    args.push(left.componentIndex(0));
     return new SequenceExpression(args);
 }
 

@@ -364,7 +364,14 @@ constant_expression
         
 declaration
     : function_prototype 'SEMICOLON'    { yy.symbolTable.popScope(); $$ = null; }
-    | init_declarator_list 'SEMICOLON'  { $$ = $1; }
+    | init_declarator_list 'SEMICOLON'  {
+        if (yy.fn) {
+            yy.fn.addDeclarations($1);
+            $$ = $1.getAssignments();
+        } else {
+            $$ = $1;
+        }
+    }
     | PRECISION precision_qualifier type_specifier_no_prec SEMICOLON
     ;
     
@@ -388,11 +395,11 @@ function_declarator
 function_header_with_parameters
     : function_header parameter_declaration {
         $$ = $1;
-        $1.params.push($2);
+        $1.addParam($2);
     }
     | function_header_with_parameters 'COMMA' parameter_declaration {
         $$ = $1;
-        $1.params.push($3);
+        $1.addParam($3);
     }
     ;
     
@@ -762,6 +769,17 @@ jump_statement
             yy.error('incorrect function return type');
             
         $$ = new yy.ReturnStatement($2);
+        if (yy.fn.usesStack) {
+            $$ = [
+                new yy.ExpressionStatement(
+                    new yy.AssignmentExpression(
+                        new yy.Identifier('$$STACKTOP'),
+                        '=',
+                        new yy.Identifier('$$sp')
+                    )
+                )
+            ].concat($$);
+        }
     }
     | 'DISCARD' 'SEMICOLON'             { throw 'TODO'; }
     ;

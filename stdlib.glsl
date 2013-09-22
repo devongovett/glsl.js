@@ -1,5 +1,5 @@
 // Angle and Trigonometry
-const float PI = 3.14;
+const float PI = 3.141592653589793;
 
 float radians(float degrees) {
   return PI / 180.0 * degrees;
@@ -8,6 +8,13 @@ float radians(float degrees) {
 float degrees(float radians) {
   return 180.0 / PI * radians;
 }
+
+float sin(float x);
+float cos(float x);
+float tan(float x);
+float asin(float x);
+float acos(float x);
+float atan(float x);
 
 // sin, cos, tan, asin, acos, atan, atan
 
